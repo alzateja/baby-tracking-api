@@ -33,8 +33,8 @@ export class UserAccount extends Entity {
   }
 }
 
-export interface UserRelations {
+export interface UserAccountRelations {
   // describe navigational properties here
 }
 
-export type UserWithRelations = UserAccount & UserRelations;
+export type UserAccountWithRelations = UserAccount & UserAccountRelations;
