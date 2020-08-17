@@ -11,7 +11,7 @@ import {
   UserServiceBindings,
 } from '@loopback/authentication-jwt';
 import {inject} from '@loopback/core';
-import {model, property, repository} from '@loopback/repository';
+import {repository} from '@loopback/repository';
 import {
   get,
   getModelSchemaRef,
@@ -22,22 +22,7 @@ import {
 import {SecurityBindings, securityId, UserProfile} from '@loopback/security';
 import {genSalt, hash} from 'bcryptjs';
 import _ from 'lodash';
-
-@model()
-export class NewUserRequest extends User {
-  @property({
-    type: 'string',
-    id: true,
-    generated: true,
-  })
-  id: string;
-
-  @property({
-    type: 'string',
-    required: true,
-  })
-  password: string;
-}
+import {UserAccount} from '../models';
 
 const CredentialsSchema = {
   type: 'object',
@@ -130,7 +115,7 @@ export class UserController {
         content: {
           'application/json': {
             schema: {
-              'x-ts-type': User,
+              'x-ts-type': UserAccount,
             },
           },
         },
@@ -141,13 +126,14 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(NewUserRequest, {
+          schema: getModelSchemaRef(UserAccount, {
             title: 'NewUser',
+            exclude: ['id'],
           }),
         },
       },
     })
-    newUserRequest: NewUserRequest,
+    newUserRequest: UserAccount,
   ): Promise<User> {
     const password = await hash(newUserRequest.password, await genSalt());
 
@@ -161,7 +147,7 @@ export class UserController {
     }
 
     const savedUser = await this.userRepository.create(
-      _.pick(newUserRequest, ['email', 'id']),
+      _.omit(newUserRequest, 'password'),
     );
 
     await this.userRepository.userCredentials(savedUser.id).create({password});

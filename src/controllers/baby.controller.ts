@@ -1,3 +1,4 @@
+import {authenticate} from '@loopback/authentication';
 import {
   Count,
   CountSchema,
@@ -7,13 +8,13 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
 } from '@loopback/rest';
 import {Baby} from '../models';
@@ -22,14 +23,19 @@ import {BabyRepository} from '../repositories';
 export class BabyController {
   constructor(
     @repository(BabyRepository)
-    public babyRepository : BabyRepository,
+    public babyRepository: BabyRepository,
   ) {}
 
+  @authenticate('jwt')
   @post('/babies', {
     responses: {
       '200': {
         description: 'Baby model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Baby)}},
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(Baby, {exclude: ['id']}),
+          },
+        },
       },
     },
   })
@@ -49,6 +55,7 @@ export class BabyController {
     return this.babyRepository.create(baby);
   }
 
+  @authenticate('jwt')
   @get('/babies/count', {
     responses: {
       '200': {
@@ -57,12 +64,11 @@ export class BabyController {
       },
     },
   })
-  async count(
-    @param.where(Baby) where?: Where<Baby>,
-  ): Promise<Count> {
+  async count(@param.where(Baby) where?: Where<Baby>): Promise<Count> {
     return this.babyRepository.count(where);
   }
 
+  @authenticate('jwt')
   @get('/babies', {
     responses: {
       '200': {
@@ -78,12 +84,11 @@ export class BabyController {
       },
     },
   })
-  async find(
-    @param.filter(Baby) filter?: Filter<Baby>,
-  ): Promise<Baby[]> {
+  async find(@param.filter(Baby) filter?: Filter<Baby>): Promise<Baby[]> {
     return this.babyRepository.find(filter);
   }
 
+  @authenticate('jwt')
   @patch('/babies', {
     responses: {
       '200': {
@@ -106,6 +111,7 @@ export class BabyController {
     return this.babyRepository.updateAll(baby, where);
   }
 
+  @authenticate('jwt')
   @get('/babies/{id}', {
     responses: {
       '200': {
@@ -120,11 +126,12 @@ export class BabyController {
   })
   async findById(
     @param.path.number('id') id: number,
-    @param.filter(Baby, {exclude: 'where'}) filter?: FilterExcludingWhere<Baby>
+    @param.filter(Baby, {exclude: 'where'}) filter?: FilterExcludingWhere<Baby>,
   ): Promise<Baby> {
     return this.babyRepository.findById(id, filter);
   }
 
+  @authenticate('jwt')
   @patch('/babies/{id}', {
     responses: {
       '204': {
@@ -146,6 +153,7 @@ export class BabyController {
     await this.babyRepository.updateById(id, baby);
   }
 
+  @authenticate('jwt')
   @put('/babies/{id}', {
     responses: {
       '204': {
@@ -160,6 +168,7 @@ export class BabyController {
     await this.babyRepository.replaceById(id, baby);
   }
 
+  @authenticate('jwt')
   @del('/babies/{id}', {
     responses: {
       '204': {
