@@ -1,17 +1,14 @@
 // Uncomment these imports to begin using these cool features!
-
 // import {inject} from '@loopback/core';
 import {authenticate, TokenService} from '@loopback/authentication';
 import {
   Credentials,
   MyUserService,
   TokenServiceBindings,
-  User,
-  UserRepository,
   UserServiceBindings,
 } from '@loopback/authentication-jwt';
 import {inject} from '@loopback/core';
-import {repository} from '@loopback/repository';
+import {model, property, repository} from '@loopback/repository';
 import {
   get,
   getModelSchemaRef,
@@ -22,7 +19,20 @@ import {
 import {SecurityBindings, securityId, UserProfile} from '@loopback/security';
 import {genSalt, hash} from 'bcryptjs';
 import _ from 'lodash';
-import {UserAccount} from '../models';
+import {User} from '../models';
+import {UserRepository} from './../repositories/user.repository';
+
+@model()
+export class NewUserRequest extends User {
+  @property({
+    type: 'string',
+    required: true,
+    jsonSchema: {
+      minLength: 8,
+    },
+  })
+  password: string;
+}
 
 const CredentialsSchema = {
   type: 'object',
@@ -114,9 +124,14 @@ export class UserController {
         description: 'User',
         content: {
           'application/json': {
-            schema: {
-              'x-ts-type': UserAccount,
-            },
+            schema: getModelSchemaRef(User, {
+              title: 'User',
+              exclude: ['password'],
+            }),
+            // schema: {
+            //   'x-ts-type': User,
+            //   exclude: ['password'],
+            // },
           },
         },
       },
@@ -126,14 +141,14 @@ export class UserController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(UserAccount, {
+          schema: getModelSchemaRef(NewUserRequest, {
             title: 'NewUser',
             exclude: ['id'],
           }),
         },
       },
     })
-    newUserRequest: UserAccount,
+    newUserRequest: NewUserRequest,
   ): Promise<User> {
     const password = await hash(newUserRequest.password, await genSalt());
 
