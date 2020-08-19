@@ -2,11 +2,11 @@ import {Getter, inject} from '@loopback/core';
 import {
   DefaultCrudRepository,
   HasOneRepositoryFactory,
-  repository,
-} from '@loopback/repository';
+  repository, HasManyRepositoryFactory} from '@loopback/repository';
 import {DbDataSource} from '../datasources';
-import {User, UserCredentials, UserRelations} from '../models';
+import {User, UserCredentials, UserRelations, Baby} from '../models';
 import {UserCredentialsRepository} from './user-credentials.repository';
+import {BabyRepository} from './baby.repository';
 
 export class UserRepository extends DefaultCrudRepository<
   User,
@@ -18,14 +18,18 @@ export class UserRepository extends DefaultCrudRepository<
     typeof User.prototype.id
   >;
 
+  public readonly babies: HasManyRepositoryFactory<Baby, typeof User.prototype.id>;
+
   constructor(
     @inject('datasources.db') dataSource: DbDataSource,
     @repository.getter('UserCredentialsRepository')
     protected userCredentialsRepositoryGetter: Getter<
       UserCredentialsRepository
-    >,
+    >, @repository.getter('BabyRepository') protected babyRepositoryGetter: Getter<BabyRepository>,
   ) {
     super(User, dataSource);
+    this.babies = this.createHasManyRepositoryFactoryFor('babies', babyRepositoryGetter,);
+    this.registerInclusionResolver('babies', this.babies.inclusionResolver);
     this.userCredentials = this.createHasOneRepositoryFactoryFor(
       'userCredentials',
       userCredentialsRepositoryGetter,
