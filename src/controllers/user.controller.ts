@@ -89,16 +89,16 @@ export class UserController {
   })
   async login(
     @requestBody(CredentialsRequestBody) credentials: Credentials,
-  ): Promise<{token: string; id: string}> {
+  ): Promise<{token: string; id: string; email: string}> {
     // ensure the user exists, and the password is correct
     const user = await this.userService.verifyCredentials(credentials);
     // convert a User object into a UserProfile object (reduced set of properties)
     const userProfile = this.userService.convertToUserProfile(user);
 
-    const {id} = user;
+    const {id, email} = user;
     // create a JSON Web Token based on the user profile
     const token = await this.jwtService.generateToken(userProfile);
-    return {token, id};
+    return {token, id, email};
   }
 
   @authenticate('jwt')
