@@ -153,7 +153,6 @@ export class UserController {
   ): Promise<User> {
     const password = await hash(newUserRequest.password, await genSalt());
 
-    console.log(newUserRequest);
     const foundUser = await this.userRepository.findOne({
       where: {email: newUserRequest.email},
     });

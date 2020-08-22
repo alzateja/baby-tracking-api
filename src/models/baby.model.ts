@@ -1,4 +1,4 @@
-import {Entity, model, property, belongsTo} from '@loopback/repository';
+import {belongsTo, Entity, model, property} from '@loopback/repository';
 import {User} from './user.model';
 
 @model()
@@ -9,21 +9,22 @@ export class Baby extends Entity {
     generated: true,
     required: false,
   })
-  id: string;
+  babyId: string;
 
   @property({
-    type: 'date',
+    type: 'Date',
+    jsonSchema: {
+      format: 'date',
+    },
   })
-  dob?: string;
-
-  @property({
-    type: 'string',
-  })
-  gender?: string;
+  dob?: Date;
 
   @property({
     type: 'string',
     required: true,
+    jsonSchema: {
+      uniqueItems: true,
+    },
   })
   name: string;
 
