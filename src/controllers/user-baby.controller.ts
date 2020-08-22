@@ -9,6 +9,7 @@ import {
   get,
   getModelSchemaRef,
   getWhereSchemaFor,
+  HttpErrors,
   param,
   patch,
   post,
@@ -56,13 +57,27 @@ export class UserBabyController {
         'application/json': {
           schema: getModelSchemaRef(Baby, {
             title: 'NewBabyInUser',
-            exclude: ['id', 'userId'],
+            exclude: ['babyId', 'userId'],
           }),
         },
       },
     })
-    baby: Omit<Baby, 'id'>,
+    baby: Omit<Baby, 'babyId'>,
   ): Promise<Baby> {
+    const babies = await this.userRepository.babies(userId).find();
+
+    if (babies.length >= 4) {
+      throw new HttpErrors.Conflict(
+        'Sorry, no more than 4 babies can be on an account',
+      );
+    }
+
+    const matchesBabyName = (existingBaby: Baby): boolean =>
+      baby.name === existingBaby.name;
+
+    if (babies.find(matchesBabyName)) {
+      throw new HttpErrors.Conflict('That baby name already exists');
+    }
     return this.userRepository.babies(userId).create(baby);
   }
 
