@@ -21,6 +21,10 @@ export class Diapers extends Entity {
   })
   date: string;
 
+  @property({
+    type: 'string',
+  })
+  babyId?: string;
 
   constructor(data?: Partial<Diapers>) {
     super(data);

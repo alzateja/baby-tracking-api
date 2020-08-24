@@ -4,17 +4,21 @@ import {
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
+  del, get,
+  getModelSchemaRef, param,
+
+
+  patch, post,
+
+
+
+
   put,
-  del,
-  requestBody,
+
+  requestBody
 } from '@loopback/rest';
 import {Diapers} from '../models';
 import {DiapersRepository} from '../repositories';
@@ -119,7 +123,7 @@ export class DiapersController {
     },
   })
   async findById(
-    @param.path.number('id') id: number,
+    @param.path.number('id') id: string,
     @param.filter(Diapers, {exclude: 'where'}) filter?: FilterExcludingWhere<Diapers>
   ): Promise<Diapers> {
     return this.diapersRepository.findById(id, filter);
@@ -133,7 +137,7 @@ export class DiapersController {
     },
   })
   async updateById(
-    @param.path.number('id') id: number,
+    @param.path.number('id') id: string,
     @requestBody({
       content: {
         'application/json': {
@@ -154,7 +158,7 @@ export class DiapersController {
     },
   })
   async replaceById(
-    @param.path.number('id') id: number,
+    @param.path.number('id') id: string,
     @requestBody() diapers: Diapers,
   ): Promise<void> {
     await this.diapersRepository.replaceById(id, diapers);
@@ -167,7 +171,7 @@ export class DiapersController {
       },
     },
   })
-  async deleteById(@param.path.number('id') id: number): Promise<void> {
+  async deleteById(@param.path.number('id') id: string): Promise<void> {
     await this.diapersRepository.deleteById(id);
   }
 }
