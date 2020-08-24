@@ -63,7 +63,7 @@ export class UserBabyController {
       },
     })
     baby: Omit<Baby, 'babyId'>,
-  ): Promise<Baby> {
+  ): Promise<Baby[]> {
     const babies = await this.userRepository.babies(userId).find();
 
     if (babies.length >= 4) {
@@ -78,7 +78,9 @@ export class UserBabyController {
     if (babies.find(matchesBabyName)) {
       throw new HttpErrors.Conflict('That baby name already exists');
     }
-    return this.userRepository.babies(userId).create(baby);
+    await this.userRepository.babies(userId).create(baby);
+
+    return this.userRepository.babies(userId).find();
   }
 
   @patch('/users/{userId}/babies', {
