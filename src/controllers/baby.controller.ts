@@ -9,12 +9,13 @@ import {
   requestBody,
 } from '@loopback/rest';
 import {Baby} from '../models';
-import {BabyRepository} from '../repositories';
+import {BabyRepository, UserRepository} from '../repositories';
 
 export class BabyController {
   constructor(
     @repository(BabyRepository)
     public babyRepository: BabyRepository,
+    @repository(UserRepository) protected userRepository: UserRepository,
   ) {}
 
   @get('/babies/{id}', {
@@ -78,7 +79,10 @@ export class BabyController {
       },
     },
   })
-  async deleteById(@param.path.string('id') id: string): Promise<void> {
+  async deleteById(@param.path.string('id') id: string): Promise<Baby[]> {
+    const baby = await this.babyRepository.findById(id);
     await this.babyRepository.deleteById(id);
+    const {userId} = baby;
+    return this.userRepository.babies(userId).find();
   }
 }
