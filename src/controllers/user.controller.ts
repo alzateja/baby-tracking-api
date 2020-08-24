@@ -129,10 +129,6 @@ export class UserController {
               title: 'User',
               exclude: ['password'],
             }),
-            // schema: {
-            //   'x-ts-type': User,
-            //   exclude: ['password'],
-            // },
           },
         },
       },

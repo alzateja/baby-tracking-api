@@ -1,7 +1,13 @@
-import {belongsTo, Entity, model, property, hasMany} from '@loopback/repository';
-import {User} from './user.model';
+import {
+  belongsTo,
+  Entity,
+  hasMany,
+  model,
+  property,
+} from '@loopback/repository';
 import {Diapers} from './diapers.model';
 import {Feedings} from './feedings.model';
+import {User} from './user.model';
 
 @model()
 export class Baby extends Entity {

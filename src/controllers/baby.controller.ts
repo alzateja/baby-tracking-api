@@ -1,11 +1,11 @@
-import {FilterExcludingWhere, repository} from '@loopback/repository';
+import {repository} from '@loopback/repository';
 import {
   del,
-  get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
-  put,
+  post,
   requestBody,
 } from '@loopback/rest';
 import {Baby} from '../models';
@@ -18,23 +18,52 @@ export class BabyController {
     @repository(UserRepository) protected userRepository: UserRepository,
   ) {}
 
-  @get('/babies/{id}', {
+  @post('/babies', {
     responses: {
       '200': {
         description: 'Baby model instance',
         content: {
           'application/json': {
-            schema: getModelSchemaRef(Baby, {includeRelations: true}),
+            schema: {type: 'array', items: getModelSchemaRef(Baby)},
           },
         },
       },
     },
   })
-  async findById(
-    @param.path.string('id') id: string,
-    @param.filter(Baby, {exclude: 'where'}) filter?: FilterExcludingWhere<Baby>,
-  ): Promise<Baby> {
-    return this.babyRepository.findById(id, filter);
+  async create(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(Baby, {
+            title: 'NewBaby',
+            exclude: ['babyId'],
+          }),
+        },
+      },
+    })
+    baby: Omit<Baby, 'babyId'>,
+  ): Promise<Baby[]> {
+    const {userId} = baby;
+    if (userId === undefined) {
+      throw new HttpErrors.Conflict('You need to provide a userId');
+    }
+    const babies = await this.userRepository.babies(userId).find();
+
+    if (babies.length >= 4) {
+      throw new HttpErrors.Conflict(
+        'Sorry, no more than 4 babies can be on an account',
+      );
+    }
+
+    const matchesBabyName = (existingBaby: Baby): boolean =>
+      baby.name === existingBaby.name;
+
+    if (babies.find(matchesBabyName)) {
+      throw new HttpErrors.Conflict('That baby name already exists');
+    }
+    await this.userRepository.babies(userId).create(baby);
+
+    return this.userRepository.babies(userId).find();
   }
 
   @patch('/babies/{id}', {
@@ -56,20 +85,6 @@ export class BabyController {
     baby: Baby,
   ): Promise<void> {
     await this.babyRepository.updateById(id, baby);
-  }
-
-  @put('/babies/{id}', {
-    responses: {
-      '204': {
-        description: 'Baby PUT success',
-      },
-    },
-  })
-  async replaceById(
-    @param.path.string('id') id: string,
-    @requestBody() baby: Baby,
-  ): Promise<void> {
-    await this.babyRepository.replaceById(id, baby);
   }
 
   @del('/babies/{id}', {
