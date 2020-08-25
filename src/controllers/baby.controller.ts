@@ -9,13 +9,22 @@ import {
   requestBody,
 } from '@loopback/rest';
 import {Baby} from '../models';
-import {BabyRepository, UserRepository} from '../repositories';
+import {
+  BabyRepository,
+  DiapersRepository,
+  FeedingsRepository,
+  UserRepository,
+} from '../repositories';
 
 export class BabyController {
   constructor(
     @repository(BabyRepository)
     public babyRepository: BabyRepository,
     @repository(UserRepository) protected userRepository: UserRepository,
+    @repository(DiapersRepository)
+    public diapersRepository: DiapersRepository,
+    @repository(FeedingsRepository)
+    public feedingsRepository: FeedingsRepository,
   ) {}
 
   @post('/babies', {
@@ -32,12 +41,10 @@ export class BabyController {
   })
   async create(
     @requestBody({
+      description: 'NewBaby',
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Baby, {
-            title: 'NewBaby',
-            exclude: ['babyId'],
-          }),
+          schema: {type: 'array', items: getModelSchemaRef(Baby)},
         },
       },
     })
@@ -91,11 +98,18 @@ export class BabyController {
     responses: {
       '204': {
         description: 'Baby DELETE success',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Baby)},
+          },
+        },
       },
     },
   })
   async deleteById(@param.path.string('id') id: string): Promise<Baby[]> {
     const baby = await this.babyRepository.findById(id);
+    await this.babyRepository.feedings(id).delete();
+    await this.babyRepository.diapers(id).delete();
     await this.babyRepository.deleteById(id);
     const {userId} = baby;
     return this.userRepository.babies(userId).find();
