@@ -1,17 +1,5 @@
-import {
-  Count,
-  CountSchema,
-  Filter,
-  repository,
-  Where,
-} from '@loopback/repository';
-import {
-  del,
-  get,
-  getModelSchemaRef,
-  getWhereSchemaFor,
-  param,
-} from '@loopback/rest';
+import {Filter, repository} from '@loopback/repository';
+import {get, getModelSchemaRef, param} from '@loopback/rest';
 import {Diapers} from '../models';
 import {BabyRepository} from '../repositories';
 
@@ -37,21 +25,5 @@ export class BabyDiapersController {
     @param.query.object('filter') filter?: Filter<Diapers>,
   ): Promise<Diapers[]> {
     return this.babyRepository.diapers(id).find(filter);
-  }
-
-  @del('/babies/{id}/diapers', {
-    responses: {
-      '200': {
-        description: 'Baby.Diapers DELETE success count',
-        content: {'application/json': {schema: CountSchema}},
-      },
-    },
-  })
-  async delete(
-    @param.path.string('id') id: string,
-    @param.query.object('where', getWhereSchemaFor(Diapers))
-    where?: Where<Diapers>,
-  ): Promise<Count> {
-    return this.babyRepository.diapers(id).delete(where);
   }
 }
