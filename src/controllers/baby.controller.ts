@@ -44,7 +44,7 @@ export class BabyController {
       description: 'NewBaby',
       content: {
         'application/json': {
-          schema: {type: 'array', items: getModelSchemaRef(Baby)},
+          schema: getModelSchemaRef(Baby),
         },
       },
     })
@@ -77,6 +77,11 @@ export class BabyController {
     responses: {
       '204': {
         description: 'Baby PATCH success',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Baby)},
+          },
+        },
       },
     },
   })
@@ -90,8 +95,11 @@ export class BabyController {
       },
     })
     baby: Baby,
-  ): Promise<void> {
+  ): Promise<Baby[]> {
     await this.babyRepository.updateById(id, baby);
+    const updatedRecord = await this.babyRepository.findById(id);
+    const {userId} = updatedRecord;
+    return this.userRepository.babies(userId).find();
   }
 
   @del('/babies/{id}', {
