@@ -1,6 +1,7 @@
 import {repository} from '@loopback/repository';
 import {
   del,
+  get,
   getModelSchemaRef,
   HttpErrors,
   param,
@@ -71,6 +72,25 @@ export class BabyController {
     await this.userRepository.babies(userId).create(baby);
 
     return this.userRepository.babies(userId).find();
+  }
+
+  @get('/babies/{id}', {
+    responses: {
+      '200': {
+        description: 'Baby model instance',
+        content: {
+          'application/json': {
+            schema: getModelSchemaRef(Baby),
+          },
+        },
+      },
+    },
+  })
+  async getById(@param.path.string('id') id: string): Promise<any> {
+    const baby = await this.babyRepository.findById(id);
+    const feedings = await this.babyRepository.feedings(id).find();
+    const diapers = await this.babyRepository.diapers(id).find();
+    return {...baby, feedings, diapers};
   }
 
   @patch('/babies/{id}', {
