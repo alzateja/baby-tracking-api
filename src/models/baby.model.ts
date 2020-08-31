@@ -25,7 +25,7 @@ export class Baby extends Entity {
       format: 'date',
     },
   })
-  dob?: Date;
+  dob: Date;
 
   @property({
     type: 'string',

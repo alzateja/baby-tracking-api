@@ -9,13 +9,22 @@ import {
   post,
   requestBody,
 } from '@loopback/rest';
-import {Baby} from '../models';
+import {Baby, Diapers, Feedings} from '../models';
 import {
   BabyRepository,
   DiapersRepository,
   FeedingsRepository,
   UserRepository,
 } from '../repositories';
+
+export interface BabyWithEvents {
+  babyId: string;
+  name: string;
+  dob: Date;
+  userId: string;
+  feedings: Feedings[];
+  diapers: Diapers[];
+}
 
 export class BabyController {
   constructor(
@@ -86,7 +95,7 @@ export class BabyController {
       },
     },
   })
-  async getById(@param.path.string('id') id: string): Promise<any> {
+  async getById(@param.path.string('id') id: string): Promise<BabyWithEvents> {
     const baby = await this.babyRepository.findById(id);
     const feedings = await this.babyRepository.feedings(id).find();
     const diapers = await this.babyRepository.diapers(id).find();
