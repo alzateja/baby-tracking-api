@@ -2,6 +2,7 @@ import {repository} from '@loopback/repository';
 import {
   del,
   getModelSchemaRef,
+  HttpErrors,
   param,
   patch,
   post,
@@ -37,6 +38,13 @@ export class FeedingsController {
     })
     feedings: Omit<Feedings, 'feedingId'>,
   ): Promise<Feedings> {
+    const {type} = feedings;
+    const validFeedingTypes = ['nursing', 'bottle'];
+    if (!validFeedingTypes.includes(type)) {
+      throw new HttpErrors.Conflict(
+        "You need to provide a valid type of either 'nursing' or 'bottle'",
+      );
+    }
     return this.feedingsRepository.create(feedings);
   }
 
