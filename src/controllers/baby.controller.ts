@@ -3,28 +3,30 @@ import {
   del,
   get,
   getModelSchemaRef,
-  HttpErrors,
   param,
   patch,
   post,
   requestBody,
 } from '@loopback/rest';
-import {Baby, Diapers, Feedings} from '../models';
+import {Baby} from '../models';
 import {
   BabyRepository,
   DiapersRepository,
   FeedingsRepository,
   UserRepository,
 } from '../repositories';
-
-export interface BabyWithEvents {
-  babyId: string;
-  name: string;
-  dob: Date;
-  userId: string;
-  feedings: Feedings[];
-  diapers: Diapers[];
-}
+import {
+  deleteBabyAndEvents,
+  returnBabyInfo,
+  returnBabyWithEvents,
+  returnListOfBabiesOnUser,
+} from '../utils/controller';
+import {
+  babyLengthCheck,
+  doesBabyNameMatch,
+  validIdPassed,
+} from '../utils/validation';
+import {BabyWithEvents} from './../types/index.d';
 
 export class BabyController {
   constructor(
@@ -54,33 +56,23 @@ export class BabyController {
       description: 'NewBaby',
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Baby),
+          schema: getModelSchemaRef(Baby, {
+            exclude: ['babyId'],
+          }),
         },
       },
     })
     baby: Omit<Baby, 'babyId'>,
   ): Promise<Baby[]> {
-    const {userId} = baby;
-    if (userId === undefined) {
-      throw new HttpErrors.Conflict('You need to provide a userId');
-    }
-    const babies = await this.userRepository.babies(userId).find();
+    const {userId, name} = baby;
+    validIdPassed(userId);
+    const babies = await returnListOfBabiesOnUser(this.userRepository, userId);
+    babyLengthCheck(babies);
+    doesBabyNameMatch(babies, name);
 
-    if (babies.length >= 4) {
-      throw new HttpErrors.Conflict(
-        'Sorry, no more than 4 babies can be on an account',
-      );
-    }
-
-    const matchesBabyName = (existingBaby: Baby): boolean =>
-      baby.name === existingBaby.name;
-
-    if (babies.find(matchesBabyName)) {
-      throw new HttpErrors.Conflict('That baby name already exists');
-    }
     await this.userRepository.babies(userId).create(baby);
 
-    return this.userRepository.babies(userId).find();
+    return returnListOfBabiesOnUser(this.userRepository, userId);
   }
 
   @get('/babies/{id}', {
@@ -96,10 +88,7 @@ export class BabyController {
     },
   })
   async getById(@param.path.string('id') id: string): Promise<BabyWithEvents> {
-    const baby = await this.babyRepository.findById(id);
-    const feedings = await this.babyRepository.feedings(id).find();
-    const diapers = await this.babyRepository.diapers(id).find();
-    return {...baby, feedings, diapers};
+    return returnBabyWithEvents(this.babyRepository, id);
   }
 
   @patch('/babies/{id}', {
@@ -119,16 +108,30 @@ export class BabyController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Baby, {partial: true}),
+          schema: getModelSchemaRef(Baby, {
+            partial: true,
+            title: 'UpdatedBaby',
+            exclude: ['userId', 'babyId'],
+          }),
         },
       },
     })
-    baby: Baby,
+    updatedBaby: Baby,
   ): Promise<Baby[]> {
-    await this.babyRepository.updateById(id, baby);
-    const updatedRecord = await this.babyRepository.findById(id);
-    const {userId} = updatedRecord;
-    return this.userRepository.babies(userId).find();
+    validIdPassed(id);
+    const {name} = updatedBaby;
+    const originalRecord = await returnBabyInfo(this.babyRepository, id);
+    const {userId} = originalRecord;
+    if (name !== undefined) {
+      const babies = await returnListOfBabiesOnUser(
+        this.userRepository,
+        userId,
+      );
+      doesBabyNameMatch(babies, name);
+    }
+    await this.babyRepository.updateById(id, updatedBaby);
+
+    return returnListOfBabiesOnUser(this.userRepository, userId);
   }
 
   @del('/babies/{id}', {
@@ -144,11 +147,9 @@ export class BabyController {
     },
   })
   async deleteById(@param.path.string('id') id: string): Promise<Baby[]> {
-    const baby = await this.babyRepository.findById(id);
-    await this.babyRepository.feedings(id).delete();
-    await this.babyRepository.diapers(id).delete();
-    await this.babyRepository.deleteById(id);
+    const baby = await returnBabyInfo(this.babyRepository, id);
+    await deleteBabyAndEvents(this.babyRepository, id);
     const {userId} = baby;
-    return this.userRepository.babies(userId).find();
+    return returnListOfBabiesOnUser(this.userRepository, userId);
   }
 }

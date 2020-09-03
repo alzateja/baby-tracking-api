@@ -1,7 +1,8 @@
-import {Filter, repository} from '@loopback/repository';
+import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef, param} from '@loopback/rest';
 import {Feedings} from '../models';
 import {BabyRepository} from '../repositories';
+import {returnBabyFeedingEvents} from '../utils/controller';
 
 export class BabyFeedingsController {
   constructor(
@@ -20,10 +21,7 @@ export class BabyFeedingsController {
       },
     },
   })
-  async find(
-    @param.path.string('id') id: string,
-    @param.query.object('filter') filter?: Filter<Feedings>,
-  ): Promise<Feedings[]> {
-    return this.babyRepository.feedings(id).find(filter);
+  async find(@param.path.string('id') id: string): Promise<Feedings[]> {
+    return returnBabyFeedingEvents(this.babyRepository, id);
   }
 }

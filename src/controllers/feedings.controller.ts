@@ -2,26 +2,33 @@ import {repository} from '@loopback/repository';
 import {
   del,
   getModelSchemaRef,
-  HttpErrors,
   param,
   patch,
   post,
   requestBody,
 } from '@loopback/rest';
 import {Feedings} from '../models';
-import {FeedingsRepository} from '../repositories';
+import {BabyRepository, FeedingsRepository} from '../repositories';
+import {returnBabyFeedingEvents} from '../utils/controller';
+import {hasValidFeedingType, validIdPassed} from './../utils/validation';
 
 export class FeedingsController {
   constructor(
     @repository(FeedingsRepository)
     public feedingsRepository: FeedingsRepository,
+    @repository(BabyRepository)
+    public babyRepository: BabyRepository,
   ) {}
 
   @post('/feedings', {
     responses: {
       '200': {
         description: 'Feedings model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Feedings)}},
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Feedings)},
+          },
+        },
       },
     },
   })
@@ -37,21 +44,23 @@ export class FeedingsController {
       },
     })
     feedings: Omit<Feedings, 'feedingId'>,
-  ): Promise<Feedings> {
-    const {type} = feedings;
-    const validFeedingTypes = ['nursing', 'bottle'];
-    if (!validFeedingTypes.includes(type)) {
-      throw new HttpErrors.Conflict(
-        "You need to provide a valid type of either 'nursing' or 'bottle'",
-      );
-    }
-    return this.feedingsRepository.create(feedings);
+  ): Promise<Feedings[]> {
+    const {type, babyId} = feedings;
+    validIdPassed(babyId);
+    hasValidFeedingType(type);
+    await this.feedingsRepository.create(feedings);
+    return returnBabyFeedingEvents(this.babyRepository, babyId);
   }
 
   @patch('/feedings/{id}', {
     responses: {
       '204': {
         description: 'Feedings PATCH success',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Feedings)},
+          },
+        },
       },
     },
   })
@@ -60,23 +69,41 @@ export class FeedingsController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Feedings, {partial: true}),
+          schema: getModelSchemaRef(Feedings, {
+            title: 'UpdatedFeedings',
+            exclude: ['feedingId', 'babyId'],
+            partial: true,
+          }),
         },
       },
     })
     feedings: Feedings,
-  ): Promise<void> {
+  ): Promise<Feedings[]> {
+    const {type, babyId} = feedings;
+    if (type !== undefined) {
+      hasValidFeedingType(type);
+    }
+    validIdPassed(babyId);
     await this.feedingsRepository.updateById(id, feedings);
+    return returnBabyFeedingEvents(this.babyRepository, babyId);
   }
 
   @del('/feedings/{id}', {
     responses: {
       '204': {
         description: 'Feedings DELETE success',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Feedings)},
+          },
+        },
       },
     },
   })
-  async deleteById(@param.path.string('id') id: string): Promise<void> {
+  async deleteById(@param.path.string('id') id: string): Promise<Feedings[]> {
+    const feedingEvent = await this.feedingsRepository.findById(id);
     await this.feedingsRepository.deleteById(id);
+    const {babyId} = feedingEvent;
+    return returnBabyFeedingEvents(this.babyRepository, babyId);
   }
 }

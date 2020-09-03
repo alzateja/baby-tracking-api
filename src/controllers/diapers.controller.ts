@@ -2,26 +2,33 @@ import {repository} from '@loopback/repository';
 import {
   del,
   getModelSchemaRef,
-  HttpErrors,
   param,
   patch,
   post,
   requestBody,
 } from '@loopback/rest';
 import {Diapers} from '../models';
-import {DiapersRepository} from '../repositories';
+import {BabyRepository, DiapersRepository} from '../repositories';
+import {returnBabyDiapersEvents} from '../utils/controller';
+import {hasValidDiaperType, validIdPassed} from './../utils/validation';
 
 export class DiapersController {
   constructor(
     @repository(DiapersRepository)
     public diapersRepository: DiapersRepository,
+    @repository(BabyRepository)
+    public babyRepository: BabyRepository,
   ) {}
 
   @post('/diapers', {
     responses: {
       '200': {
         description: 'Diapers model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Diapers)}},
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Diapers)},
+          },
+        },
       },
     },
   })
@@ -36,22 +43,24 @@ export class DiapersController {
         },
       },
     })
-    diapers: Omit<Diapers, 'diaperId'>,
-  ): Promise<Diapers> {
-    const {type} = diapers;
-    const validFeedingTypes = ['mixed', 'wet', 'dirty'];
-    if (!validFeedingTypes.includes(type)) {
-      throw new HttpErrors.Conflict(
-        "You need to provide a valid type of either 'dirty', 'wet' or 'mixed'",
-      );
-    }
-    return this.diapersRepository.create(diapers);
+    diaper: Omit<Diapers, 'diaperId'>,
+  ): Promise<Diapers[]> {
+    const {type, babyId} = diaper;
+    hasValidDiaperType(type);
+    validIdPassed(babyId);
+    await this.diapersRepository.create(diaper);
+    return returnBabyDiapersEvents(this.babyRepository, babyId);
   }
 
   @patch('/diapers/{id}', {
     responses: {
       '204': {
         description: 'Diapers PATCH success',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Diapers)},
+          },
+        },
       },
     },
   })
@@ -60,23 +69,42 @@ export class DiapersController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Diapers, {partial: true}),
+          schema: getModelSchemaRef(Diapers, {
+            partial: true,
+            title: 'UpdatedDiapers',
+            exclude: ['diaperId', 'babyId'],
+          }),
         },
       },
     })
     diapers: Diapers,
-  ): Promise<void> {
+  ): Promise<Diapers[]> {
+    const {type, babyId} = diapers;
+    if (type !== undefined) {
+      hasValidDiaperType(type);
+    }
+
+    validIdPassed(babyId);
     await this.diapersRepository.updateById(id, diapers);
+    return returnBabyDiapersEvents(this.babyRepository, babyId);
   }
 
   @del('/diapers/{id}', {
     responses: {
       '204': {
         description: 'Diapers DELETE success',
+        content: {
+          'application/json': {
+            schema: {type: 'array', items: getModelSchemaRef(Diapers)},
+          },
+        },
       },
     },
   })
-  async deleteById(@param.path.number('id') id: string): Promise<void> {
+  async deleteById(@param.path.number('id') id: string): Promise<Diapers[]> {
+    const diaperEvent = await this.diapersRepository.findById(id);
     await this.diapersRepository.deleteById(id);
+    const {babyId} = diaperEvent;
+    return returnBabyDiapersEvents(this.babyRepository, babyId);
   }
 }

@@ -24,7 +24,7 @@ export class Feedings extends Entity {
   @property({
     type: 'string',
   })
-  babyId?: string;
+  babyId: string;
 
   constructor(data?: Partial<Feedings>) {
     super(data);

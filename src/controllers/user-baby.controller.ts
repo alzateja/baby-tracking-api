@@ -1,7 +1,8 @@
-import {Filter, repository} from '@loopback/repository';
+import {repository} from '@loopback/repository';
 import {get, getModelSchemaRef, param} from '@loopback/rest';
 import {Baby} from '../models';
 import {UserRepository} from '../repositories';
+import {returnListOfBabiesOnUser} from '../utils/controller';
 
 export class UserBabyController {
   constructor(
@@ -20,10 +21,7 @@ export class UserBabyController {
       },
     },
   })
-  async find(
-    @param.path.string('userId') userId: string,
-    @param.query.object('filter') filter?: Filter<Baby>,
-  ): Promise<Baby[]> {
-    return this.userRepository.babies(userId).find(filter);
+  async find(@param.path.string('userId') userId: string): Promise<Baby[]> {
+    return returnListOfBabiesOnUser(this.userRepository, userId);
   }
 }
