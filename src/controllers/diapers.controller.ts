@@ -65,7 +65,7 @@ export class DiapersController {
     },
   })
   async updateById(
-    @param.path.number('id') id: string,
+    @param.path.string('id') id: string,
     @requestBody({
       content: {
         'application/json': {
@@ -101,7 +101,7 @@ export class DiapersController {
       },
     },
   })
-  async deleteById(@param.path.number('id') id: string): Promise<Diapers[]> {
+  async deleteById(@param.path.string('id') id: string): Promise<Diapers[]> {
     const diaperEvent = await this.diapersRepository.findById(id);
     await this.diapersRepository.deleteById(id);
     const {babyId} = diaperEvent;
